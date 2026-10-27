@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Forge Search</title>
+<style>
+:root{--ink:#202124;--muted:#5f6368;--surface:rgba(255,255,255,.91);--panel:rgba(255,255,255,.96);--line:rgba(60,64,67,.18);--blue:#1a73e8;--shadow:0 8px 30px rgba(32,33,36,.10);--radius:28px;--custom-bg:none}
+*{box-sizing:border-box}
+html{min-height:100%;scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#fff;overflow-x:hidden}
+button,input,select{font:inherit}button{cursor:pointer;color:inherit}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:linear-gradient(135deg,#08090c 0%,#08090c 49.7%,#fff 50.3%,#fff 100%);pointer-events:none}
+body::after{content:"";position:fixed;inset:0;z-index:-1;background-image:var(--custom-bg);background-position:center;background-size:cover;background-repeat:no-repeat;opacity:var(--bg-image-opacity,0);pointer-events:none}
+body.custom-bg-on::before{opacity:0}
+body.custom-bg-on::after{opacity:1}
+body.solid-bg::before{background:var(--solid-bg,#fff)}
+body.solid-bg::after{opacity:0}
+body.dark{--ink:#e8eaed;--muted:#bdc1c6;--surface:rgba(32,33,36,.94);--panel:rgba(32,33,36,.98);--line:rgba(232,234,237,.16);--blue:#8ab4f8;--shadow:0 8px 30px rgba(0,0,0,.24)}
+body.dark::before{background:linear-gradient(135deg,#08090c 0%,#08090c 49.7%,#202124 50.3%,#202124 100%)}
+body.dark.solid-bg::before{background:var(--solid-bg,#202124)}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+.icon{width:21px;height:21px;display:inline-block;flex:0 0 auto;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px clamp(16px,4vw,44px);gap:14px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--ink);font-weight:650;letter-spacing:-.5px;text-decoration:none}
+.brand-mark{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(from 220deg,#4285f4 0 30%,#34a853 30% 49%,#fbbc05 49% 67%,#ea4335 67% 83%,#4285f4 83%);color:#fff}
+.brand-mark .icon{width:18px;height:18px;stroke-width:2.5}
+.top-actions{display:flex;align-items:center;gap:8px}
+.icon-btn{width:42px;height:42px;border:1px solid transparent;border-radius:50%;background:transparent;display:grid;place-items:center;transition:background .18s,border .18s}
+.icon-btn:hover,.icon-btn:focus-visible{background:var(--surface);border-color:var(--line);outline:none}
+.page{width:min(100% - 32px,1000px);margin:0 auto;padding-bottom:70px}
+.hero{min-height:calc(72vh - 76px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 0 50px;transition:min-height .25s}
+.hero.has-results{min-height:0;padding:12px 0 8px}
+.hero.has-results .wordmark,
+.hero.has-results .search-wrap,
+.hero.has-results .quick-links,
+.hero.has-results .hint{display:none!important}
+.wordmark{font-size:clamp(42px,8vw,72px);font-weight:700;letter-spacing:0.06em;line-height:1.1;margin:0 0 30px;color:#5e81ac;text-shadow:0 1px 0 rgba(255,255,255,.15)}
+body.dark .wordmark{color:#88c0d0}
+.search-wrap{width:min(100%,720px);position:relative;z-index:5}
+.searchbox{height:58px;display:flex;align-items:center;gap:12px;padding:0 17px;background:var(--surface);border:1px solid var(--line);border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.07);backdrop-filter:blur(16px);transition:box-shadow .2s,border-color .2s,border-radius .15s}
+.searchbox:focus-within{box-shadow:0 5px 22px rgba(0,0,0,.14);border-color:transparent}
+.searchbox input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);font-size:16px}
+.searchbox input::placeholder{color:var(--muted);opacity:.9}
+.searchbox .icon-btn{width:36px;height:36px}
+.searchbox .icon-btn .icon{width:20px;height:20px}
+.mic-btn{color:var(--blue)}
+.suggestions{display:none;position:absolute;left:0;right:0;top:calc(100% - 4px);padding:10px 0 12px;background:var(--panel);border:1px solid var(--line);border-top:0;border-radius:0 0 25px 25px;box-shadow:var(--shadow);backdrop-filter:blur(18px);overflow:hidden}
+.suggestions.open{display:block}
+.search-wrap:has(.suggestions.open) .searchbox{border-radius:28px 28px 0 0;box-shadow:0 5px 22px rgba(0,0,0,.12)}
+.suggestion{width:100%;border:0;background:transparent;display:flex;align-items:center;gap:14px;padding:9px 20px;text-align:left;color:var(--ink)}
+.suggestion:hover,.suggestion.active{background:rgba(128,128,128,.12)}
+.suggestion .icon{color:var(--muted);width:18px;height:18px}
+.quick-links{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:23px}
+.quick-links button{display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);backdrop-filter:blur(10px);color:var(--ink);transition:transform .15s,box-shadow .15s}
+.quick-links button:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.hint{font-size:12px;color:var(--muted);margin-top:18px;text-align:center}
+.results-area{display:none;margin-top:4px}
+.results-area.visible{display:block}
+.tabs{display:flex;align-items:center;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:22px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{white-space:nowrap;display:flex;align-items:center;gap:8px;padding:13px 15px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font-size:14px}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.result-meta{font-size:12px;color:var(--muted);margin:0 0 20px}
+.result{max-width:740px;margin:0 0 27px;padding:0 2px}
+.result-site{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px;margin-bottom:3px;overflow-wrap:anywhere}
+.favicon{width:22px;height:22px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;font-size:11px;flex:0 0 auto;background:var(--surface)}
+.result-title{font-size:20px;line-height:1.3;font-weight:450;display:inline-block;margin-bottom:5px}
+.result-snippet{color:var(--muted);font-size:14px;line-height:1.55;overflow-wrap:anywhere}
+.result-date{font-size:12px;color:var(--muted);margin-right:7px}
+.result-actions{display:flex;gap:6px;margin-top:7px}
+.small-action{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 9px;font-size:12px}
+.small-action .icon{width:14px;height:14px}
+.grid-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.image-card{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:var(--surface);min-width:0}
+.image-card img{width:100%;height:145px;object-fit:cover;display:block;background:rgba(128,128,128,.12)}
+.image-card .image-caption{padding:10px;font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+.image-card .image-caption a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.status{padding:22px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--muted);max-width:740px}
+.spinner{width:19px;height:19px;border:2px solid var(--line);border-top-color:var(--blue);border-radius:50%;display:inline-block;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pager{display:flex;align-items:center;gap:10px;margin:25px 0}
+.pager button,.primary-btn{border:1px solid var(--line);border-radius:999px;background:var(--surface);padding:9px 16px;color:var(--ink)}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+.footer{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:42px}
+.footer button{border:0;background:transparent;color:inherit}
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.42);display:none;justify-content:flex-end}
+.overlay.open{display:flex}
+.settings-panel{width:min(430px,100%);height:100%;overflow:auto;background:var(--panel);color:var(--ink);box-shadow:-15px 0 45px rgba(0,0,0,.18);padding:22px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-head h2{font-size:20px;margin:0;letter-spacing:-.5px}
+.setting-section{padding:17px 0;border-top:1px solid var(--line)}
+.setting-section h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 13px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+.setting-row label{font-size:14px}
+.setting-row input[type="color"]{width:42px;height:34px;padding:2px;border:1px solid var(--line);border-radius:9px;background:transparent}
+.setting-row input[type="text"],.setting-row input[type="url"],.setting-row select{width:56%;min-width:0;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px}
+.setting-row input[type="checkbox"]{width:18px;height:18px;accent-color:var(--blue)}
+.file-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:transparent;font-size:13px}
+.file-btn input{display:none}
+.button-row{display:flex;gap:8px;flex-wrap:wrap}
+.button-row button{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:transparent}
+.button-row .primary-btn{background:var(--blue);color:white;border-color:var(--blue)}
+.saved-list{display:grid;gap:10px}
+.saved-item{padding:11px;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere}
+.saved-item a{font-size:14px}
+.saved-item p{font-size:12px;color:var(--muted);margin:4px 0}
+.saved-item button{font-size:12px;margin:5px 7px 0 0;border:1px solid var(--line);background:transparent;border-radius:8px;padding:5px 8px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;z-index:50;background:#202124;color:white;padding:11px 16px;border-radius:999px;font-size:13px;transition:all .2s;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.mobile-only{display:none}
+@media(max-width:620px){
+ .topbar{padding:12px 14px}.brand span:last-child{font-size:14px}.top-actions{gap:0}.icon-btn{width:38px;height:38px}
+ .page{width:calc(100% - 24px)}.hero{min-height:calc(76vh - 60px);padding:20px 0 36px}.hero.has-results{padding:8px 0 4px}
+ .wordmark{letter-spacing:-3px;margin-bottom:24px}.searchbox{height:54px;padding:0 11px;gap:8px}.searchbox input{font-size:16px}.searchbox .icon-btn{width:32px;height:32px}
+ .quick-links{gap:7px}.quick-links button{padding:9px 11px;font-size:13px}
+ .tab{padding:12px 11px;font-size:13px}.result-title{font-size:18px}.grid-results{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.image-card img{height:125px}
+ .settings-panel{padding:18px}.mobile-only{display:inline-flex}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></symbol>
+ <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M8.5 21.5h7"/></symbol>
+ <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.1 1.9-1.7 2.9-2.2-.6a8 8 0 0 1-1.7 1l-.4 2.2h-3.4l-.4-2.2a8 8 0 0 1-1.7-1l-2.2.6-1.7-2.9 1.1-1.9a8 8 0 0 1 0-2l-1.1-1.9 1.7-2.9 2.2.6a8 8 0 0 1 1.7-1l.4-2.2h3.4l.4 2.2a8 8 0 0 1 1.7 1l2.2-.6 1.7 2.9-1.1 1.9a8 8 0 0 1 0 2Z" transform="translate(0 -1) scale(1 .95)"/></symbol>
+ <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3.5h12v17l-6-4-6 4z"/></symbol>
+ <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></symbol>
+ <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></symbol>
+ <symbol id="i-play" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></symbol>
+ <symbol id="i-news" viewBox="0 0 24 24"><path d="M5 4h15v16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+ <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+ <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+ <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+ <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></symbol>
+ <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z"/></symbol>
+ <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+ <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-10 0 1 14h10l1-14M10 10v6m4-6v6"/></symbol>
+</svg>
+<header class="topbar">
+ <a class="brand" href="#" id="homeLink" aria-label="Forge Search home"><span class="brand-mark"><svg class="icon"><use href="#i-search"/></svg></span><span>Forge Search</span></a>
+ <div class="top-actions">
+  <button class="icon-btn" id="historyShortcut" title="History" aria-label="History"><svg class="icon"><use href="#i-clock"/></svg></button>
+  <button class="icon-btn" id="bookmarkShortcut" title="Bookmarks" aria-label="Bookmarks"><svg class="icon"><use href="#i-bookmark"/></svg></button>
+  <button class="icon-btn" id="settingsButton" title="Settings" aria-label="Open settings"><svg class="icon"><use href="#i-settings"/></svg></button>
+ </div>
+</header>
+<main class="page">
+ <section class="hero" id="hero">
+  <h1 class="wordmark" aria-label="Forge Search">FORGE SEARCH</h1>
+  <div class="search-wrap">
+   <form class="searchbox" id="searchForm" role="search">
+    <svg class="icon" style="color:var(--muted)"><use href="#i-search"/></svg>
+    <input id="query" name="q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search anything…" aria-label="Search the web">
+    <button type="button" class="icon-btn mic-btn" id="micButton" title="Search by voice" aria-label="Search by voice"><svg class="icon"><use href="#i-mic"/></svg></button>
+    <button type="submit" class="icon-btn" title="Search" aria-label="Search"><svg class="icon"><use href="#i-arrow"/></svg></button>
+   </form>
+   <div class="suggestions" id="suggestions" role="listbox" aria-label="Search suggestions"></div>
+  </div>
+  <div class="quick-links">
+   <button type="button" data-category="general"><svg class="icon"><use href="#i-search"/></svg> Web search</button>
+   <button type="button" data-category="images"><svg class="icon"><use href="#i-image"/></svg> Images</button>
+   <button type="button" data-category="videos"><svg class="icon"><use href="#i-play"/></svg> Videos</button>
+   <button type="button" data-category="news"><svg class="icon"><use href="#i-news"/></svg> News</button>
+  </div>
+  <p class="hint">Press <kbd>Enter</kbd> to search · Use the microphone for voice search</p>
+ </section>
+ <section class="results-area" id="resultsArea" aria-live="polite">
+  <div class="search-wrap" style="margin-bottom:22px">
+   <form class="searchbox" id="resultsSearchForm" role="search">
+    <svg class="icon" style="color:var(--muted)"><use href="#i-search"/></svg>
+    <input id="queryTop" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search anything…" aria-label="Search again">
+    <button type="button" class="icon-btn mic-btn" id="micButtonTop" title="Search by voice" aria-label="Search by voice"><svg class="icon"><use href="#i-mic"/></svg></button>
+    <button type="submit" class="icon-btn" aria-label="Search"><svg class="icon"><use href="#i-arrow"/></svg></button>
+   </form>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Search categories">
+   <button class="tab active" data-category="general"><svg class="icon"><use href="#i-search"/></svg> All</button>
+   <button class="tab" data-category="images"><svg class="icon"><use href="#i-image"/></svg> Images</button>
+   <button class="tab" data-category="videos"><svg class="icon"><use href="#i-play"/></svg> Videos</button>
+   <button class="tab" data-category="news"><svg class="icon"><use href="#i-news"/></svg> News</button>
+   <button class="tab" data-category="science">Science</button>
+   <button class="tab" data-category="it">Technology</button>
+  </nav>
+  <p class="result-meta" id="resultMeta"></p>
+  <div id="resultList"></div>
+  <div class="pager" id="pager" hidden>
+   <button id="prevPage">← Previous</button><span id="pageLabel"></span><button id="nextPage">Next →</button>
+  </div>
+ </section>
+ <footer class="footer"><span>Powered by Forge Search</span><button id="footerPrivacy">Privacy & local data</button><button id="footerSettings">Search settings</button></footer>
+</main>
+<div class="overlay" id="settingsOverlay" aria-hidden="true">
+ <aside class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="panel-head"><h2 id="settingsTitle">Search settings</h2><button class="icon-btn" id="closeSettings" aria-label="Close settings"><svg class="icon"><use href="#i-close"/></svg></button></div>
+  <section class="setting-section">
+   <h3>Appearance</h3>
+   <div class="setting-row"><label for="themeSelect">Theme</label><select id="themeSelect"><option value="system">System default</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+   <div class="setting-row"><label for="bgMode">Background style</label><select id="bgMode"><option value="split">Black / white zig-zag</option><option value="solid">Solid colour</option><option value="image">Custom image</option></select></div>
+   <div class="setting-row" id="colorRow"><label for="bgColor">Background colour</label><input type="color" id="bgColor" value="#ffffff"></div>
+   <div class="setting-row" id="imageRow"><label>Background image</label><label class="file-btn"><svg class="icon"><use href="#i-image"/></svg> Choose image<input id="bgImage" type="file" accept="image/*"></label></div>
+   <div class="setting-row" id="imageOpacityRow"><label for="imageOpacity">Image visibility</label><input type="range" id="imageOpacity" min=".1" max="1" step=".1" value="1"></div>
+   <div class="button-row"><button id="resetBackground">Reset background</button></div>
+  </section>
+  <section class="setting-section">
+   <h3>Search</h3>
+   <div class="setting-row"><label for="instanceUrl">SearXNG URL</label><input type="url" id="instanceUrl" placeholder="https://search.example.com"></div>
+   <div class="setting-row"><label for="safeSearch">SafeSearch</label><select id="safeSearch"><option value="0">Off</option><option value="1">Moderate</option><option value="2">Strict</option></select></div>
+   <div class="setting-row"><label for="openNewTab">Open results in new tab</label><input type="checkbox" id="openNewTab" checked></div>
+   <div class="setting-row"><label for="suggestToggle">Autocomplete suggestions</label><input type="checkbox" id="suggestToggle" checked></div>
+   <div class="setting-row"><label for="historyToggle">Save local history</label><input type="checkbox" id="historyToggle" checked></div>
+   <div class="setting-row"><label for="thumbToggle">Show thumbnails when available</label><input type="checkbox" id="thumbToggle" checked></div>
+   <div class="setting-row"><label for="languageSelect">Search language</label><select id="languageSelect"><option value="all">Any language</option><option value="en">English</option><option value="hi">Hindi</option><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="fr">French</option><option value="de">German</option><option value="es">Spanish</option></select></div>
+   <div class="setting-row"><label for="timeRange">Time range</label><select id="timeRange"><option value="">Any time</option><option value="day">Past 24 hours</option><option value="month">Past month</option><option value="year">Past year</option></select></div>
+   <div class="setting-row"><label for="resultsCount">Results per page</label><select id="resultsCount"><option value="10">10</option><option value="20">20</option><option value="30">30</option></select></div>
+   <div class="button-row"><button class="primary-btn" id="saveSettings">Save settings</button><button id="testConnection">Test connection</button></div>
+   <p id="connectionStatus" style="font-size:12px;color:var(--muted)"></p>
+  </section>
+  <section class="setting-section">
+   <h3>Bookmarks</h3><div id="bookmarkList" class="saved-list"><p style="color:var(--muted);font-size:13px">No bookmarks saved yet. Save a result using its bookmark button.</p></div>
+  </section>
+  <section class="setting-section">
+   <h3>Search history</h3><div class="button-row" style="margin-bottom:12px"><button id="clearHistory">Clear history</button></div><div id="historyList" class="saved-list"><p style="color:var(--muted);font-size:13px">No recent searches.</p></div>
+  </section>
+  <section class="setting-section">
+   <h3>Your data</h3><p style="font-size:13px;color:var(--muted)">Bookmarks, history and preferences are stored in this browser only. A custom background image is stored locally in this browser. Search queries are sent to the SearXNG instance configured above.</p>
+   <div class="button-row"><button id="exportData">Export settings & bookmarks</button><button id="clearAll">Clear local data</button></div>
+  </section>
+ </aside>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY='cleanSearchPrefs_v1', BOOKS='cleanSearchBookmarks_v1', HIST='cleanSearchHistory_v1';
+const defaults={instanceUrl:'https://forge-search-8e6r.onrender.com',theme:'system',bgMode:'split',bgColor:'#ffffff',safeSearch:'0',openNewTab:true,suggestToggle:true,historyToggle:true,thumbToggle:true,languageSelect:'all',timeRange:'',resultsCount:'10',imageOpacity:'1'};
+let prefs={...defaults,...read(KEY,{})}, currentQuery='', currentCategory='general', currentPage=1, lastResults=[], suggestions=[], activeSuggestion=-1, suggestTimer=null, requestController=null, imageData='';
+function read(key,fallback){try{const x=localStorage.getItem(key);return x?JSON.parse(x):fallback}catch{return fallback}}
+function write(key,value){try{localStorage.setItem(key,JSON.stringify(value))}catch{toast('Browser storage is full. Try a smaller background image.');}}
+function icon(name){return `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`}
+function toast(message){const el=$('toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2400)}
+function safeText(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function safeUrl(s){try{const u=new URL(s);return ['http:','https:'].includes(u.protocol)?u.href:'#'}catch{return '#'}}
+function rootUrl(){let s=(prefs.instanceUrl||location.origin).trim().replace(/\/+$/,'');return s||location.origin}
+function isDark(){return prefs.theme==='dark'||(prefs.theme==='system'&&matchMedia('(prefers-color-scheme: dark)').matches)}
+function applyPrefs(){
+ document.body.classList.toggle('dark',isDark());
+ document.body.classList.toggle('solid-bg',prefs.bgMode==='solid');
+ document.body.classList.toggle('custom-bg-on',prefs.bgMode==='image'&&!!imageData);
+ document.body.style.setProperty('--solid-bg',prefs.bgColor||'#fff');
+ document.body.style.setProperty('--bg-image-opacity',prefs.bgMode==='image'&&imageData?(prefs.imageOpacity||1):0);
+ if(imageData)document.body.style.setProperty('--custom-bg',`url("${imageData}")`);else document.body.style.removeProperty('--custom-bg');
+}
+function syncSettings(){
+ for(const id of ['instanceUrl','themeSelect','bgMode','bgColor','safeSearch','openNewTab','suggestToggle','historyToggle','thumbToggle','languageSelect','timeRange','resultsCount','imageOpacity']){
+  const el=$(id);if(!el)continue;const key=({themeSelect:'theme'})[id]||id;
+  if(el.type==='checkbox')el.checked=!!prefs[key];else if(prefs[key]!==undefined)el.value=prefs[key];
+ }
+ $('imageRow').style.display=prefs.bgMode==='image'?'flex':'none';
+ $('imageOpacityRow').style.display=prefs.bgMode==='image'?'flex':'none';
+ $('colorRow').style.display=prefs.bgMode==='solid'?'flex':'none';
+ renderSavedLists();
+}
+function collectSettings(){
+ for(const id of ['instanceUrl','themeSelect','bgMode','bgColor','safeSearch','openNewTab','suggestToggle','historyToggle','thumbToggle','languageSelect','timeRange','resultsCount','imageOpacity']){
+  const el=$(id),key=({themeSelect:'theme'})[id]||id;
+  prefs[key]=el.type==='checkbox'?el.checked:el.value;
+ }
+ prefs.instanceUrl=(prefs.instanceUrl||location.origin).replace(/\/+$/,'');
+}
+function openSettings(section){$('settingsOverlay').classList.add('open');$('settingsOverlay').setAttribute('aria-hidden','false');syncSettings();if(section){const node=section==='history'?'historyList':section==='bookmarks'?'bookmarkList':null;if(node)setTimeout(()=>$(node).scrollIntoView({behavior:'smooth',block:'start'}),50)}}
+function closeSettings(){$('settingsOverlay').classList.remove('open');$('settingsOverlay').setAttribute('aria-hidden','true')}
+function searchUrl(q,category,page=1,format='json'){
+ const u=new URL(rootUrl()+'/search');
+ u.searchParams.set('q',q);u.searchParams.set('format',format);u.searchParams.set('categories',category);u.searchParams.set('pageno',page);
+ u.searchParams.set('safesearch',prefs.safeSearch||'0');u.searchParams.set('language',prefs.languageSelect||'all');
+ if(prefs.timeRange)u.searchParams.set('time_range',prefs.timeRange);
+ return u.href;
+}
+function setQuery(q){$('query').value=q;$('queryTop').value=q}
+function showSuggestions(items){
+ suggestions=items.slice(0,8);activeSuggestion=-1;
+ const box=$('suggestions');
+ if(!suggestions.length||!prefs.suggestToggle){box.classList.remove('open');box.innerHTML='';return}
+ box.innerHTML=suggestions.map((s,i)=>`<button type="button" class="suggestion" role="option" data-index="${i}">${icon('search')}<span>${safeText(s)}</span></button>`).join('');
+ box.classList.add('open');
+ box.querySelectorAll('.suggestion').forEach(btn=>btn.addEventListener('mousedown',e=>{e.preventDefault();const q=suggestions[+btn.dataset.index];setQuery(q);hideSuggestions();runSearch(q,currentCategory,1)}));
+}
+function hideSuggestions(){$('suggestions').classList.remove('open');activeSuggestion=-1}
+async function fetchSuggestions(q){
+ if(!prefs.suggestToggle||q.trim().length<2){showSuggestions([]);return}
+ try{
+  const u=searchUrl(q,'general',1);
+  const r=await fetch(u,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(7000)});
+  if(!r.ok)return;
+  const data=await r.json();
+  if($('query').value.trim()!==q.trim())return;
+  const items=[...(data.suggestions||[]),...(data.results||[]).slice(0,3).map(x=>x.title)].filter(Boolean);
+  showSuggestions([...new Set(items)].filter(s=>s.toLowerCase()!==q.toLowerCase()));
+ }catch{/* Suggestions are optional; preserve typing if the instance is offline. */}
+}
+function addHistory(q,category){
+ if(!prefs.historyToggle)return;
+ const items=read(HIST,[]).filter(x=>!(x.q===q&&x.category===category));
+ items.unshift({q,category,time:Date.now()});write(HIST,items.slice(0,80));
+}
+function isBookmarked(url){return read(BOOKS,[]).some(b=>b.url===url)}
+function toggleBookmark(item){
+ const books=read(BOOKS,[]),i=books.findIndex(b=>b.url===item.url);
+ if(i>=0){books.splice(i,1);toast('Bookmark removed')}else{books.unshift({...item,savedAt:Date.now()});toast('Saved to bookmarks')}
+ write(BOOKS,books);renderSavedLists();renderResults(lastResults);
+}
+function renderSavedLists(){
+ const books=read(BOOKS,[]),history=read(HIST,[]);
+ $('bookmarkList').innerHTML=books.length?books.map((b,i)=>`<div class="saved-item"><a href="${safeUrl(b.url)}" target="_blank" rel="noopener">${safeText(b.title||b.url)}</a><p>${safeText(b.url)}</p><button data-remove-book="${i}">Remove</button><button data-search-book="${i}">Search title</button></div>`).join(''):'<p style="color:var(--muted);font-size:13px">No bookmarks saved yet. Save a result using its bookmark button.</p>';
+ $('historyList').innerHTML=history.length?history.slice(0,20).map((h,i)=>`<div class="saved-item"><a href="#" data-history="${i}">${safeText(h.q)}</a><p>${safeText(h.category)} · ${new Date(h.time).toLocaleString()}</p><button data-history-search="${i}">Search again</button></div>`).join(''):'<p style="color:var(--muted);font-size:13px">No recent searches.</p>';
+ $('bookmarkList').querySelectorAll('[data-remove-book]').forEach(b=>b.onclick=()=>{const arr=read(BOOKS,[]);arr.splice(+b.dataset.removeBook,1);write(BOOKS,arr);renderSavedLists();renderResults(lastResults)});
+ $('bookmarkList').querySelectorAll('[data-search-book]').forEach(b=>b.onclick=()=>{const item=read(BOOKS,[])[+b.dataset.searchBook];closeSettings();setQuery(item.title);runSearch(item.title,'general',1)});
+ $('historyList').querySelectorAll('[data-history],[data-history-search]').forEach(b=>b.onclick=e=>{e.preventDefault();const item=read(HIST,[])[+(b.dataset.history??b.dataset.historySearch)];closeSettings();setQuery(item.q);runSearch(item.q,item.category,1)});
+}
+function resultItem(r){
+ const url=safeUrl(r.url||'#'),title=r.title||r.url||'Untitled result',content=r.content||'',host=(()=>{try{return new URL(url).hostname}catch{return 'Search result'}})(),fav=`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=32`;
+ const date=r.publishedDate?`<span class="result-date">${safeText(String(r.publishedDate).slice(0,10))}</span>`:'';
+ const book={url,title,content,category:r.category||currentCategory};
+ const saved=isBookmarked(url);
+ const thumbnail=r.thumbnail||r.img_src||r.thumbnail_src||'';
+ return `<article class="result"><div class="result-site"><img class="favicon" src="${fav}" alt="" loading="lazy" onerror="this.style.display='none'"><span>${safeText(host)}</span></div><a class="result-title" href="${url}" ${prefs.openNewTab?'target="_blank" rel="noopener noreferrer"':''}>${safeText(title)}</a><div class="result-snippet">${date}${safeText(content)}</div>${currentCategory==='videos'&&thumbnail&&prefs.thumbToggle?`<div style="margin-top:10px"><a href="${url}" ${prefs.openNewTab?'target="_blank" rel="noopener noreferrer"':''}><img src="${safeUrl(thumbnail)}" alt="" loading="lazy" style="max-width:240px;max-height:135px;object-fit:cover;border-radius:12px;border:1px solid var(--line)"></a></div>`:''}<div class="result-actions"><button class="small-action" data-book-url="${encodeURIComponent(url)}">${icon('bookmark')}${saved?'Saved':'Save'}</button><button class="small-action" data-copy-url="${encodeURIComponent(url)}">Copy link</button></div></article>`;
+}
+function imageItem(r){
+ const url=safeUrl(r.url||'#'),img=safeUrl(r.img_src||r.thumbnail||r.thumbnail_src||''),title=r.title||r.url||'Image result';
+ return `<article class="image-card">${img!=='#'&&prefs.thumbToggle?`<a href="${url}" ${prefs.openNewTab?'target="_blank" rel="noopener noreferrer"':''}><img src="${img}" alt="${safeText(title)}" loading="lazy" onerror="this.parentElement.parentElement.querySelector('img').style.display='none'"></a>`:`<div style="height:100px;display:grid;place-items:center;color:var(--muted)">${icon('image')}</div>`}<div class="image-caption"><a href="${url}" ${prefs.openNewTab?'target="_blank" rel="noopener noreferrer"':''}>${safeText(title)}</a><div style="color:var(--muted);font-size:11px;margin-top:4px">${safeText((r.source||r.engine||''))}</div><button class="small-action" style="margin-top:7px" data-book-url="${encodeURIComponent(url)}">${icon('bookmark')} Save</button></div></article>`;
+}
+function renderResults(results){
+ lastResults=results||[];const list=$('resultList');
+ if(!lastResults.length){list.innerHTML='<div class="status">No results found for this category. Try another search term or switch categories.</div>';return}
+ if(currentCategory==='images'){list.innerHTML=`<div class="grid-results">${lastResults.map(imageItem).join('')}</div>`}
+ else{list.innerHTML=lastResults.map(resultItem).join('')}
+ list.querySelectorAll('[data-book-url]').forEach(btn=>btn.onclick=()=>{const url=decodeURIComponent(btn.dataset.bookUrl);const item=lastResults.find(r=>(r.url||'')===url);if(item)toggleBookmark({url,title:item.title||url,content:item.content||'',category:currentCategory});else toggleBookmark({url,title:url,category:currentCategory})});
+ list.querySelectorAll('[data-copy-url]').forEach(btn=>btn.onclick=async()=>{try{await navigator.clipboard.writeText(decodeURIComponent(btn.dataset.copyUrl));toast('Link copied')}catch{toast('Could not copy link in this browser')}});
+}
+async function runSearch(q,category=currentCategory,page=1){
+ q=(q||'').trim();if(!q){$('query').focus();return}
+ currentQuery=q;currentCategory=category;currentPage=page;setQuery(q);hideSuggestions();
+ $('hero').classList.add('has-results');$('resultsArea').classList.add('visible');
+ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.category===category));
+ $('resultMeta').innerHTML='<span class="spinner"></span>Searching the web…';$('resultList').innerHTML='';$('pager').hidden=true;
+ addHistory(q,category);renderSavedLists();
+ if(requestController)requestController.abort();requestController=new AbortController();
+ try{
+  const u=searchUrl(q,category,page),start=performance.now();
+  const response=await fetch(u,{headers:{Accept:'application/json'},signal:requestController.signal});
+  if(!response.ok)throw new Error(`SearXNG returned HTTP ${response.status}. Check JSON format settings and the instance URL.`);
+  const data=await response.json();
+  const results=data.results||[];
+  const elapsed=Math.round(performance.now()-start);
+  $('resultMeta').textContent=`About ${Number(data.number_of_results||results.length).toLocaleString()} results · ${elapsed} ms`;
+  renderResults(results);
+  $('pager').hidden=false;$('prevPage').disabled=page<=1;$('nextPage').disabled=results.length===0;$('pageLabel').textContent=`Page ${page}`;
+  history.replaceState(null,'',`?q=${encodeURIComponent(q)}&category=${encodeURIComponent(category)}&page=${page}`);
+ }catch(err){
+  if(err.name==='AbortError')return;
+  $('resultMeta').textContent='Search unavailable';
+  $('resultList').innerHTML=`<div class="status"><strong>Could not load results.</strong><p>${safeText(err.message||'Check your SearXNG connection.')}</p><p>Make sure this file is served from the same origin as SearXNG, or configure a same-origin reverse proxy. Enable JSON under <code>search.formats</code> in your SearXNG settings.</p><button class="primary-btn" id="retrySearch">Try again</button></div>`;
+  $('retrySearch').onclick=()=>runSearch(q,category,page);
+ }
+}
+function wireForm(formId,inputId){$(formId).addEventListener('submit',e=>{e.preventDefault();runSearch($(inputId).value,currentCategory,1)})}
+wireForm('searchForm','query');wireForm('resultsSearchForm','queryTop');
+$('query').addEventListener('input',e=>{clearTimeout(suggestTimer);const q=e.target.value;suggestTimer=setTimeout(()=>fetchSuggestions(q),280)});
+$('queryTop').addEventListener('input',e=>{ $('query').value=e.target.value;clearTimeout(suggestTimer);const q=e.target.value;suggestTimer=setTimeout(()=>fetchSuggestions(q),280)});
+$('query').addEventListener('keydown',e=>suggestionKeys(e));$('queryTop').addEventListener('keydown',e=>suggestionKeys(e));
+function suggestionKeys(e){
+ const box=$('suggestions');if(!box.classList.contains('open'))return;
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();activeSuggestion=(activeSuggestion+(e.key==='ArrowDown'?1:-1)+suggestions.length)%suggestions.length;box.querySelectorAll('.suggestion').forEach((b,i)=>b.classList.toggle('active',i===activeSuggestion));}
+ if(e.key==='Enter'&&activeSuggestion>=0){e.preventDefault();const q=suggestions[activeSuggestion];setQuery(q);runSearch(q,currentCategory,1)}
+ if(e.key==='Escape')hideSuggestions();
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))hideSuggestions()});
+document.querySelectorAll('[data-category]').forEach(btn=>btn.addEventListener('click',()=>{const cat=btn.dataset.category;if(btn.classList.contains('tab')||currentQuery)runSearch(currentQuery||$('query').value,cat,1);else{currentCategory=cat;$('query').focus();toast(`${cat==='general'?'Web':cat[0].toUpperCase()+cat.slice(1)} search selected`)}}));
+$('prevPage').onclick=()=>runSearch(currentQuery,currentCategory,Math.max(1,currentPage-1));
+$('nextPage').onclick=()=>runSearch(currentQuery,currentCategory,currentPage+1);
+$('settingsButton').onclick=()=>openSettings();$('footerSettings').onclick=()=>openSettings();$('closeSettings').onclick=closeSettings;
+$('settingsOverlay').addEventListener('click',e=>{if(e.target===$('settingsOverlay'))closeSettings()});
+$('historyShortcut').onclick=()=>openSettings('history');$('bookmarkShortcut').onclick=()=>openSettings('bookmarks');
+$('homeLink').onclick=e=>{e.preventDefault();currentQuery='';$('hero').classList.remove('has-results');$('resultsArea').classList.remove('visible');setQuery('');history.replaceState(null,'',location.pathname);window.scrollTo({top:0,behavior:'smooth'});$('query').focus()};
+$('themeSelect').onchange=()=>{prefs.theme=$('themeSelect').value;applyPrefs()};
+$('bgMode').onchange=()=>{prefs.bgMode=$('bgMode').value;applyPrefs();syncSettings()};
+$('bgColor').oninput=()=>{prefs.bgColor=$('bgColor').value;applyPrefs()};
+$('imageOpacity').oninput=()=>{prefs.imageOpacity=$('imageOpacity').value;applyPrefs()};
+$('bgImage').onchange=e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ if(!file.type.startsWith('image/')){toast('Choose an image file');return}
+ if(file.size>3*1024*1024){toast('Choose an image under 3 MB');return}
+ const reader=new FileReader();reader.onload=()=>{imageData=String(reader.result);prefs.bgMode='image';applyPrefs();syncSettings();toast('Background image applied')};reader.readAsDataURL(file)
+};
+$('resetBackground').onclick=()=>{imageData='';prefs.bgMode='split';prefs.bgColor='#ffffff';prefs.imageOpacity='1';applyPrefs();syncSettings();toast('Background reset')};
+$('saveSettings').onclick=()=>{collectSettings();write(KEY,prefs);applyPrefs();syncSettings();closeSettings();toast('Settings saved')};
+$('testConnection').onclick=async()=>{collectSettings();$('connectionStatus').textContent='Testing connection…';try{const u=new URL(rootUrl()+'/search');u.searchParams.set('q','test');u.searchParams.set('format','json');const r=await fetch(u,{headers:{Accept:'application/json'},signal:AbortSignal.timeout(8000)});if(!r.ok)throw Error('HTTP '+r.status);await r.json();$('connectionStatus').textContent='Connection successful. JSON search is available.';toast('SearXNG connection successful')}catch(e){$('connectionStatus').textContent='Could not connect: '+e.message+' — check URL, JSON format and CORS/proxy settings.'}};
+$('clearHistory').onclick=()=>{write(HIST,[]);renderSavedLists();toast('History cleared')};
+$('clearAll').onclick=()=>{if(!confirm('Clear bookmarks, search history and saved preferences from this browser?'))return;localStorage.removeItem(HIST);localStorage.removeItem(BOOKS);localStorage.removeItem(KEY);prefs={...defaults};imageData='';applyPrefs();syncSettings();renderSavedLists();toast('Local data cleared')};
+$('exportData').onclick=()=>{const blob=new Blob([JSON.stringify({prefs,bookmarks:read(BOOKS,[]),history:read(HIST,[])},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='search-settings-backup.json';a.click();URL.revokeObjectURL(a.href)};
+$('footerPrivacy').onclick=()=>toast('History and bookmarks stay in this browser unless you clear or export them.');
+$('micButton').onclick=()=>voiceSearch('query');$('micButtonTop').onclick=()=>voiceSearch('queryTop');
+function voiceSearch(inputId){
+ const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SpeechRecognition){toast('Voice search is not supported in this browser. Try Chrome or Edge over HTTPS.');return}
+ const rec=new SpeechRecognition();rec.lang=prefs.languageSelect==='hi'?'hi-IN':(prefs.languageSelect==='en-GB'?'en-GB':'en-US');rec.interimResults=false;rec.maxAlternatives=1;
+ const btn=$(inputId==='query'?'micButton':'micButtonTop');btn.style.color='#ea4335';toast('Listening…');
+ rec.onresult=e=>{const text=e.results[0][0].transcript;setQuery(text);runSearch(text,currentCategory,1)};
+ rec.onerror=e=>toast(e.error==='not-allowed'?'Microphone permission was denied.':'Voice search error: '+e.error);
+ rec.onend=()=>btn.style.color='';try{rec.start()}catch{toast('Could not start microphone')}
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if(prefs.theme==='system')applyPrefs()});
+function boot(){
+ applyPrefs();syncSettings();
+ const params=new URLSearchParams(location.search),q=params.get('q');
+ if(q){const category=params.get('category')||'general',page=Math.max(1,parseInt(params.get('page')||'1',10));runSearch(q,category,page)}
+}
+boot();
+})();
+</script>
+</body>
+</html>
